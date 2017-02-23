@@ -329,10 +329,10 @@ class _XMLDataset(): # pylint: disable=R0902,R0903
         if 'dataset' in record:
 
             # ------------------------------------------------------------------------------
-            #    Check if the current dataset doesn't exist or if the key in question already exists
-            #    If so, create a new data_structure holder
+            #    Check if the current dataset doesn't exist If not, create a new
+            #    data_structure holder
             # ------------------------------------------------------------------------------
-            if not record['dataset'] in self.data_structure or name in self.data_structure[record['dataset']][-1]:
+            if not record['dataset'] in self.data_structure:
 
                 # ------------------------------------------------------------------------------
                 #    Dispatch existing data
@@ -355,9 +355,55 @@ class _XMLDataset(): # pylint: disable=R0902,R0903
                     self.data_structure[record['dataset']][-1].update(self.global_values)
 
             # ------------------------------------------------------------------------------
-            #    Add the value to the holder
+            #    If the name already exists, apply clobber logic
             # ------------------------------------------------------------------------------
-            self.data_structure[record['dataset']][-1][name] = value
+            if name in self.data_structure[record['dataset']][-1]:
+
+                # ------------------------------------------------------------------------------
+                #    If it's a type:list, ignore the duplicate
+                # ------------------------------------------------------------------------------
+                if 'type' in record and record['type'] == 'list':
+                   pass
+
+                # ------------------------------------------------------------------------------
+                #    If it's not a list, continue
+                # ------------------------------------------------------------------------------
+                else:
+
+                    # ------------------------------------------------------------------------------
+                    #    Dispatch existing data
+                    # ------------------------------------------------------------------------------
+                    self._dispatch_dataset(record['dataset'])
+
+                    # ------------------------------------------------------------------------------
+                    #    If the current dataset does not exist in the data structure add
+                    #    a new entry holder
+                    # ------------------------------------------------------------------------------
+                    if record['dataset'] not in self.data_structure:
+                        self.data_structure[record['dataset']] = [{}]
+                    else:
+                        self.data_structure[record['dataset']].append({})
+
+                # ------------------------------------------------------------------------------
+                #    If global_values are defined, add them to the dataset
+                # ------------------------------------------------------------------------------
+                if hasattr(self, 'global_values'):
+                    self.data_structure[record['dataset']][-1].update(self.global_values)
+
+            # ------------------------------------------------------------------------------
+            #    Add the value to the holder, if it's a list, create or append
+            # ------------------------------------------------------------------------------
+            if 'type' in record and record['type'] == 'list':
+                try:
+                    self.data_structure[record['dataset']][-1][name].append(value)
+                except:
+                    self.data_structure[record['dataset']][-1][name] = [value]
+
+            # ------------------------------------------------------------------------------
+            #    Otherwise just set the value
+            # ------------------------------------------------------------------------------
+            else:
+                self.data_structure[record['dataset']][-1][name] = value
 
         # ------------------------------------------------------------------------------
         #    If the record contains an external_dataset
